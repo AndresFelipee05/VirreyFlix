@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+    <session-factory>
+        <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+        <!-- Configuración de la base de datos -->
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/VirreyFlix?createDatabaseIfNotExist=true
+        </property>
+        <property name="hibernate.connection.username">root</property>
+        <property name="hibernate.connection.password">Andresiito30</property>
+        <property name="hibernate.connection.pool_size">50</property>
+
+        <!-- Dialecto de Hibernate -->
+        <property name="hibernate.dialect">org.hibernate.dialect.MySQLDialect</property>
+
+        <!-- Mostrar las consultas en consola -->
+        <property name="hibernate.show_sql">false</property>
+        <property name="hibernate.format_sql">false</property>
+        <property name="hibernate.use_sql_comments">false</property>
+
+        <!-- Crear o actualizar el esquema de la base de datos -->
+        <property name="hibernate.hbm2ddl.auto">create</property>
+
+        <property name="hibernate.current_session_context_class">thread</property>
+
+        <!-- Añadir las clases de las entidades -->
+        <mapping class="org.example.model.Usuario"/>
+        <mapping class="org.example.model.Perfil"/>
+        <mapping class="org.example.model.Serie"/>
+        <mapping class="org.example.model.Episodio"/>
+        <mapping class="org.example.model.Historial"/>
+        <mapping class="org.example.model.Genero"/>
+    </session-factory>
+</hibernate-configuration>
