@@ -3,6 +3,7 @@ package org.example;
 import org.example.model.Episodio;
 import org.example.model.Historial;
 import org.example.model.Perfil;
+import org.example.model.Serie;
 import org.hibernate.Hibernate;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
@@ -11,6 +12,7 @@ import org.hibernate.Transaction;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Scanner;
 
 import static org.example.menuEpisodio.mostrarEpisodios;
@@ -29,6 +31,7 @@ public class menuHistorial {
             System.out.println("3. Modificar Historial");
             System.out.println("4. Eliminar Historial");
             System.out.println("5. Mostrar Historiales");
+            System.out.println("6. Las 5 Series más vistas");
             System.out.println("0. Volver al menú principal");
             System.out.print("Elige una opción: ");
             opcion = introduceEntero();
@@ -52,6 +55,11 @@ public class menuHistorial {
                 case 5 -> {
                     System.out.println("Mostrando todos los historiales registrados:");
                     System.out.println(mostrarHistoriales());
+                }
+
+                case 6 -> {
+                    System.out.println("Las 5 Series más vistas...");
+                    seriesMasVistas();
                 }
                 case 0 -> System.out.println("Volviendo al menú principal...");
                 default -> System.out.println("Opción no válida. Por favor, elige una opción del menú.");
@@ -310,6 +318,36 @@ public class menuHistorial {
             return -1;
         }
         return numero;
+    }
+
+    public static void seriesMasVistas() {
+        // Obtener las 5 series más vistas del catálogo
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        try {
+            List<Object[]> listaSeries = session.createQuery(
+                            "SELECT s, COUNT(h.id) AS reproducciones " +
+                                    "FROM Historial h " +
+                                    "JOIN h.episodio e " +
+                                    "JOIN e.serie s " +
+                                    "GROUP BY s " +  // Agrupamos por Serie
+                                    "ORDER BY reproducciones DESC",
+                            Object[].class
+                    ).setMaxResults(5) // En HQL no se puede usar LIMIT, se usa setMaxResults
+                    .list();
+
+            int i = 1;
+            for (Object[] o : listaSeries) {
+                Serie serie = (Serie) o[0];
+                Long reproducciones = (Long) o[1];
+                System.out.println(i + ". Nombre de la serie: " + serie.getTitulo() + " - " + reproducciones + " reproducciones");
+                i++;
+            }
+
+        } catch (HibernateException ex) {
+            ex.printStackTrace();
+        } finally {
+            session.close();
+        }
     }
 
 }

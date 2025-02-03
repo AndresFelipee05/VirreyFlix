@@ -22,7 +22,7 @@
         <property name="hibernate.use_sql_comments">false</property>
 
         <!-- Crear o actualizar el esquema de la base de datos -->
-        <property name="hibernate.hbm2ddl.auto">create</property>
+        <property name="hibernate.hbm2ddl.auto">validate</property>
 
         <property name="hibernate.current_session_context_class">thread</property>
 

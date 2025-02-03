@@ -8,6 +8,7 @@ import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -28,6 +29,7 @@ public class menuSerie {
             System.out.println("7. Mostrar Géneros");
             System.out.println("8. Series según la edad");
             System.out.println("9. Episodios de una serie");
+            System.out.println("10. Series por género");
             System.out.println("0. Volver al menú principal");
             System.out.print("Elige una opción: ");
             opcion = introduceEntero();
@@ -70,6 +72,10 @@ public class menuSerie {
 
                 case 9 -> {
                     episodiosPorSerie();
+                }
+
+                case 10 -> {
+                    seriesPorGenero();
                 }
 
                 case 0 -> System.out.println("Volviendo al menú principal...");
@@ -493,6 +499,7 @@ public class menuSerie {
     }
 
     public static void seriesPorEdad() {
+        // Mostrar las series que existen en funcio n de una edad introducida por el usuario.
         Session session = HibernateUtil.getSessionFactory().openSession();
         Transaction tx = null;
         try {
@@ -527,6 +534,7 @@ public class menuSerie {
     }
 
     public static void episodiosPorSerie() {
+        //  Mostrar todos los capítulos de una serie a partir de un ID de serie.
         Session session = HibernateUtil.getSessionFactory().openSession();
         Transaction tx = null;
         try {
@@ -566,6 +574,76 @@ public class menuSerie {
             }
         } catch (HibernateException ex) {
             if (tx != null) tx.rollback();
+            ex.printStackTrace();
+        } finally {
+            session.close();
+        }
+    }
+
+    public static void seriesPorGenero() {
+        // Mostrar series por ge nero introducido por el usuario, con la duracion media de sus capí tulos.
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        try {
+
+            System.out.println("Listado de géneros disponibles:");
+            List<Genero> listaGeneros = mostrarGeneros();
+
+            if (listaGeneros.isEmpty()) {
+                System.out.println("Lo sentimos, no hay géneros disponibles. Operación cancelada.");
+                return;
+            }
+
+            for (Genero g : listaGeneros) {
+                System.out.println(g);
+            }
+            System.out.print("Introduce el ID de un género: ");
+            long idGenero = introduceEntero();
+
+            if (idGenero < 0) {
+                System.out.println("El ID de género no cumple el formato. Operación cancelada.");
+                return;
+            }
+
+            Genero generoBuscar = session.find(Genero.class, idGenero);
+
+            if (generoBuscar == null) {
+                System.out.println("No se pudo encontrar un género con el ID: " + idGenero);
+                return;
+            }
+
+            // Consulta para obtener las series y la duración media de los capítulos
+            List<Object[]> resultado = session.createNativeQuery(
+                            "SELECT s.id, s.titulo, AVG(e.duracion) AS duracionMedia " +
+                                    "FROM serie s " +
+                                    "JOIN serie_genero sg ON s.id = sg.serie_id " +
+                                    "JOIN genero g ON sg.genero_id = g.id " +
+                                    "JOIN episodio e ON s.id = e.serie_id " +
+                                    "WHERE g.id = :idGenero " +
+                                    "GROUP BY s.id, s.titulo " +
+                                    "ORDER BY s.titulo",
+                            Object[].class
+                    ).setParameter("idGenero", idGenero)
+                    .list();
+
+
+            if (resultado.isEmpty()) {
+                System.out.println("No hay series registradas con ese género.");
+                return;
+            }
+
+            System.out.println("Series con género: " + generoBuscar.getNombre() + " y duración media de los capítulos:");
+            for (Object[] o : resultado) {
+                long idSerie = (Long) o[0];
+                String titulo = (String) o[1];
+                BigDecimal duracionMedia = (BigDecimal) o[2];
+
+                double duracionMediaDouble = duracionMedia.doubleValue();
+                // Paso de BigDecimal a double porque sino no hace de manera correcta la duración media
+
+                System.out.println("Id de la serie: " + idSerie + " " + titulo + " - Duración media: " + duracionMediaDouble);
+            }
+
+        } catch (HibernateException ex) {
             ex.printStackTrace();
         } finally {
             session.close();

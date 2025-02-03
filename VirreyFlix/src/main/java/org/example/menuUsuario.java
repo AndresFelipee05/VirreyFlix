@@ -1,10 +1,13 @@
 package org.example;
 
+import org.example.model.Perfil;
 import org.example.model.Usuario;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.*;
 
 public class menuUsuario {
@@ -20,6 +23,7 @@ public class menuUsuario {
             System.out.println("3. Modificar datos de Usuario");
             System.out.println("4. Eliminar Usuario");
             System.out.println("5. Mostrar todos los usuarios");
+            System.out.println("6. Capitulos vistos por usuario");
             System.out.println("0. Volver al menú principal");
             System.out.print("Elige una opción: ");
             opcion = introduceEntero();
@@ -45,6 +49,10 @@ public class menuUsuario {
                 case 5 -> {
                     System.out.println("Mostrando los usuarios registrados...");
                     System.out.println(mostrarUsuarios());
+                }
+
+                case 6 -> {
+                    capitulosVistos();
                 }
                 case 0 -> System.out.println("Volviendo al menú principal...");
                 default -> System.out.println("Opción no válida. Por favor, elige una opción del menú.");
@@ -315,5 +323,73 @@ public class menuUsuario {
         }
 
         return listaUsuarios;
+    }
+
+    public static void capitulosVistos() {
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        try {
+            System.out.println("Listado de usuarios registrados: ");
+            List<Usuario> usuarios = mostrarUsuarios();
+
+            if (usuarios.isEmpty()) {
+                System.out.println("Lo sentimos, no hay usuarios disponibles. Operación cancelada.");
+                return;
+            }
+
+            for (Usuario usuario : usuarios) {
+                System.out.println(usuario);
+            }
+            System.out.print("Selecciona el ID de un usuario: ");
+            long idUsuario = introduceEntero();
+
+            if (idUsuario < 0) {
+                System.out.println("El ID del usuario no cumple el formato. Operación cancelada.");
+                return;
+            }
+
+            // Obtener el perfil del usuario
+            Perfil perfilBuscar = session.createQuery("FROM Perfil pf WHERE pf.usuario.id = :idUsuario", Perfil.class)
+                    .setParameter("idUsuario", idUsuario)
+                    .uniqueResult();
+
+            if (perfilBuscar == null) {
+                System.out.println("No se pudo encontrar un Perfil con el ID de usuario: " + idUsuario);
+                return;
+            }
+
+            // Consultamos los episodios que ha visto el usuario
+            List<Object[]> resultados = session.createNativeQuery(
+                            "SELECT s.titulo, e.titulo, e.duracion, h.fecha_reproduccion " +
+                                    "FROM historial h " +
+                                    "JOIN episodio e ON h.episodio_id = e.id " +
+                                    "JOIN serie s ON e.serie_id = s.id " +
+                                    "WHERE h.perfil_id = :perfilId " +
+                                    "ORDER BY h.fecha_reproduccion DESC",
+                            Object[].class)
+                    .setParameter("perfilId", perfilBuscar.getId())
+                    .list();
+
+            if (resultados.isEmpty()){
+                System.out.println("No se han encontrado episodios vistos por el usuario");
+                return;
+            }
+
+            for (Object[] o : resultados) {
+                String tituloSerie = (String) o[0];
+                String tituloEpisodio = (String) o[1];
+                int duracion = (Integer) o[2];
+                Timestamp timestamp = (Timestamp) o[3];
+
+                LocalDateTime fechaReproduccion = timestamp.toLocalDateTime();
+
+                System.out.println("Serie: " + tituloSerie + ", Episodio: " + tituloEpisodio +
+                        ", Duración: " + duracion + " min, Fecha de reproducción: " + fechaReproduccion);
+            }
+
+        } catch (HibernateException exception) {
+            exception.printStackTrace();
+        } finally {
+            session.close();
+        }
     }
 }
