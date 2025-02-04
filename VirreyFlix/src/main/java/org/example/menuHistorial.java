@@ -1,9 +1,6 @@
 package org.example;
 
-import org.example.model.Episodio;
-import org.example.model.Historial;
-import org.example.model.Perfil;
-import org.example.model.Serie;
+import org.example.model.*;
 import org.hibernate.Hibernate;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
@@ -12,11 +9,12 @@ import org.hibernate.Transaction;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Scanner;
 
 import static org.example.menuEpisodio.mostrarEpisodios;
 import static org.example.menuPerfil.mostrarPerfiles;
+import static org.example.menuSerie.mostrarSeries;
+import static org.example.menuUsuario.mostrarUsuarios;
 
 public class menuHistorial {
 
@@ -32,6 +30,7 @@ public class menuHistorial {
             System.out.println("4. Eliminar Historial");
             System.out.println("5. Mostrar Historiales");
             System.out.println("6. Las 5 Series más vistas");
+            System.out.println("7. Insertar episodios en un historial");
             System.out.println("0. Volver al menú principal");
             System.out.print("Elige una opción: ");
             opcion = introduceEntero();
@@ -60,6 +59,10 @@ public class menuHistorial {
                 case 6 -> {
                     System.out.println("Las 5 Series más vistas...");
                     seriesMasVistas();
+                }
+
+                case 7 -> {
+                    insertarCapitulos();
                 }
                 case 0 -> System.out.println("Volviendo al menú principal...");
                 default -> System.out.println("Opción no válida. Por favor, elige una opción del menú.");
@@ -344,6 +347,196 @@ public class menuHistorial {
             }
 
         } catch (HibernateException ex) {
+            ex.printStackTrace();
+        } finally {
+            session.close();
+        }
+    }
+
+    public static void insertarCapitulos() {
+        // Añadir al historial de un usuario a traves de su ID, todos los de una
+        // serie a traves de su ID de golpe (con la fecha de hoy). Si hubiera
+        // registrado algun capítulo de esa serie ya, solo se actualizaría la fecha
+        //del día (o se borraría y insertaría uno nuevo).
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction tx = null;
+        try {
+            tx = session.beginTransaction();
+
+            System.out.println("Listado de usuarios registrados: ");
+            List<Usuario> listaUsuarios = mostrarUsuarios();
+
+            if (listaUsuarios.isEmpty()) {
+                System.out.println("Lo sentimos, no hay usuarios disponibles. Operación cancelada");
+                return;
+            }
+
+            for (Usuario usuario : listaUsuarios) {
+                System.out.println(usuario);
+            }
+
+            System.out.print("Selecciona el ID de un usuario: ");
+            long idUsuario = introduceEntero();
+
+            if (idUsuario < 0) {
+                System.out.println("El ID de usuario no cumple con el formato. Operación cancelada.");
+                return;
+            }
+
+            Usuario usuarioBuscar = session.find(Usuario.class, idUsuario);
+
+            if (usuarioBuscar == null) {
+                System.out.println("No se pudo encontrar un usuario con el ID: " + idUsuario);
+                return;
+            }
+
+            Perfil perfilBuscar = session.find(Perfil.class, usuarioBuscar.getId());
+
+            if (perfilBuscar == null) {
+                System.out.println("El usuario: " + usuarioBuscar + " no tiene un perfil asociado. Operación cancelada.");
+                return;
+            }
+
+            List<Historial> historialesDePerfil = session.createQuery("FROM Historial h WHERE h.perfil.id = :idPerfil", Historial.class)
+                    .setParameter("idPerfil", perfilBuscar.getId())
+                    .getResultList();
+
+            if (historialesDePerfil.isEmpty()) {
+                System.out.println("El perfil no tiene ningún historial asociado. Operación cancelada.");
+                return;
+            }
+
+            System.out.println("Listado de historiales registrados:");
+            for (Historial historial : historialesDePerfil) {
+                System.out.println(historial);
+            }
+
+            System.out.print("Selecciona el ID del historial que quieres modificar: ");
+            long idHistorialModificar = introduceEntero();
+
+            if (idHistorialModificar < 0) {
+                System.out.println("El ID del historial no cumple con el formato. Operación cancelada");
+                return;
+            }
+
+            Historial historialModificar = session.createQuery("SELECT h FROM Historial h WHERE h.perfil.id = :idPerfil AND h.id = :idHistorial", Historial.class)
+                    .setParameter("idPerfil", perfilBuscar.getId())
+                    .setParameter("idHistorial", idHistorialModificar)
+                    .uniqueResult();
+
+
+            if (historialModificar == null) {
+                System.out.println("No se encontró un historial con perfil: " + perfilBuscar.getNombre() + ", e ID historial: " + idHistorialModificar);
+                return;
+            }
+
+            System.out.println("¿Quieres insertar episodios a historial? (True|False)");
+            String confirmarString = sc.nextLine().trim();
+            boolean confirmar;
+
+            if (confirmarString.equalsIgnoreCase("true") || confirmarString.equalsIgnoreCase("false")) {
+                confirmar = Boolean.parseBoolean(confirmarString);
+            } else {
+                System.out.println("No has introducido True o False. Operación cancelada.");
+                return;
+            }
+
+            if (!confirmar) {
+                System.out.println("No se insertarán episodios. Operación cancelada.");
+                return;
+            }
+
+            System.out.println("Listados de series registradas:");
+            List<Serie> listaSeries = mostrarSeries();
+
+            if (listaSeries.isEmpty()) {
+                System.out.println("Lo sentimos, no hay series disponibles. Operación cancelada");
+                return;
+            }
+
+            for (Serie serie : listaSeries) {
+                System.out.println(serie);
+            }
+            System.out.print("Selecciona el ID de una serie: ");
+            long idSerieBuscar = introduceEntero();
+
+            if (idSerieBuscar < 0) {
+                System.out.println("El ID de la serie no cumpple con el formato. Operación cancelada");
+                return;
+            }
+
+            Serie serieBuscar = session.find(Serie.class, idSerieBuscar);
+
+            if (serieBuscar == null) {
+                System.out.println("No se pudo encontrar una serie con el ID: " + idSerieBuscar);
+                return;
+            }
+
+            List<Episodio> episodiosDeSerie = session.createQuery("SELECT e FROM Episodio e WHERE e.serie.id = :idSerie", Episodio.class)
+                    .setParameter("idSerie", serieBuscar.getId())
+                    .getResultList();
+
+            if (episodiosDeSerie.isEmpty()) {
+                System.out.println("No hay episodios asociados a esta serie. Operación cancelada.");
+                return;
+            }
+
+            System.out.println("Episodios que están en la serie: " + serieBuscar);
+            for (Episodio episodio : episodiosDeSerie) {
+                System.out.println(episodio);
+            }
+            System.out.println("¿Quieres añadir estos episodios al historial: " + historialModificar + "? (True|False)");
+            String confirmarEpisodiosString = sc.nextLine().trim();
+            boolean confirmarEpisodios;
+
+            if (confirmarEpisodiosString.equalsIgnoreCase("true") || confirmarEpisodiosString.equalsIgnoreCase("false")) {
+                confirmarEpisodios = Boolean.parseBoolean(confirmarEpisodiosString);
+            } else {
+                System.out.println("No has introducido True o False. Operación cancelada.");
+                return;
+            }
+
+            if (!confirmarEpisodios) {
+                System.out.println("No se añadirán episodios al historial. Operación cancelada.");
+                return;
+            }
+
+            LocalDateTime fechaHoy = LocalDateTime.now();
+
+            // Obtenemos los episodios que hay en el historial (el ID)
+            List<Long> episodiosEnHistorial = session.createQuery(
+                            "SELECT h.episodio.id FROM Historial h WHERE h.perfil.id = :idPerfil", Long.class)
+                    .setParameter("idPerfil", perfilBuscar.getId())
+                    .getResultList();
+
+            for (Episodio episodio : episodiosDeSerie) {
+                if (episodiosEnHistorial.contains(episodio.getId())) {
+                    // Si el episodio ya está en el historial, actualizar la fecha de reproducción
+                    Historial historialExistente = session.createQuery(
+                                    "SELECT h FROM Historial h WHERE h.perfil.id = :idPerfil AND h.episodio.id = :idEpisodio", Historial.class)
+                            .setParameter("idPerfil", perfilBuscar.getId())
+                            .setParameter("idEpisodio", episodio.getId())
+                            .uniqueResult();
+
+                    if (historialExistente != null) {
+                        historialExistente.setFecha_reproduccion(fechaHoy);
+                    }
+                } else {
+                    // Si el episodio no está en el historial, insertarlo
+                    Historial nuevoHistorial = new Historial();
+                    nuevoHistorial.setPerfil(perfilBuscar);
+                    nuevoHistorial.setEpisodio(episodio);
+                    nuevoHistorial.setFecha_reproduccion(fechaHoy);
+
+                    session.persist(nuevoHistorial);
+                }
+            }
+
+            tx.commit();
+            System.out.println("Episodios añadidos o actualizados en el historial correctamente.");
+
+        } catch (HibernateException ex) {
+            if (tx != null) tx.rollback();
             ex.printStackTrace();
         } finally {
             session.close();

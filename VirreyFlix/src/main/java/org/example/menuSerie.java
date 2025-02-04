@@ -467,6 +467,7 @@ public class menuSerie {
     }
 
     public static ArrayList<Serie> mostrarSeries() {
+        // Mostrar todas las series.
         Session session = HibernateUtil.getSessionFactory().openSession();
         Transaction tx = null;
         ArrayList<Serie> listaSeries = new ArrayList<>();
@@ -581,7 +582,7 @@ public class menuSerie {
     }
 
     public static void seriesPorGenero() {
-        // Mostrar series por ge nero introducido por el usuario, con la duracion media de sus capí tulos.
+        // Mostrar series por genero introducido por el usuario, con la duracion media de sus capítulos.
         Session session = HibernateUtil.getSessionFactory().openSession();
         try {
 

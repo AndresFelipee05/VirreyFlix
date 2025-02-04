@@ -326,6 +326,7 @@ public class menuUsuario {
     }
 
     public static void capitulosVistos() {
+        // Mostrar los capítulos que ha visto un usuario a partir de un ID: título de la serie, nombre del capítulo, duracion, y fecha de reproduccion.
         Session session = HibernateUtil.getSessionFactory().openSession();
         try {
             System.out.println("Listado de usuarios registrados: ");
@@ -369,7 +370,7 @@ public class menuUsuario {
                     .setParameter("perfilId", perfilBuscar.getId())
                     .list();
 
-            if (resultados.isEmpty()){
+            if (resultados.isEmpty()) {
                 System.out.println("No se han encontrado episodios vistos por el usuario");
                 return;
             }
@@ -382,12 +383,28 @@ public class menuUsuario {
 
                 LocalDateTime fechaReproduccion = timestamp.toLocalDateTime();
 
-                System.out.println("Serie: " + tituloSerie + ", Episodio: " + tituloEpisodio +
+                System.out.println("Serie: " + tituloSerie + ", nombre del episodio: " + tituloEpisodio +
                         ", Duración: " + duracion + " min, Fecha de reproducción: " + fechaReproduccion);
             }
 
         } catch (HibernateException exception) {
             exception.printStackTrace();
+        } finally {
+            session.close();
+        }
+    }
+
+    public static void mostrarUsuarioPerfil() {
+        // Mostrar todos los usuarios junto con la informacion de sus perfiles.
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction tx = null;
+        try {
+
+
+
+        } catch (HibernateException ex) {
+            if (tx != null) tx.rollback();
+            ex.printStackTrace();
         } finally {
             session.close();
         }
